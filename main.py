@@ -6,15 +6,11 @@ import requests
 import pandas as pd
 import pywikibot
 from pywikibot import pagegenerators, Bot
-
 i1 = 0.964
 point = 0
-
-
 def get_current_year_and_month():
-  now = datetime.now()
-  return now.year, now.month
-
+        now = datetime.now()
+        return now.year, now.month
 
 def is_anonymous_user(self, username):
   """
@@ -27,119 +23,135 @@ def is_anonymous_user(self, username):
   return user.isAnonymous()
 
 
+def is_admin_user(username):
+  site = pywikibot.Site()
+
+  try:
+    user = pywikibot.User(site, username)
+
+    groups = user.groups()
+
+    admin_groups = {'sysop', 'Bureaucrat', 'Oversighter', 'CheckUser'}
+    if any(group in admin_groups for group in groups):
+        return True
+    else:
+        return False
+  except pywikibot.NoUsername:
+      print(f"The username '{username}' does not exist.")
+      return False
+  except Exception as e:
+      print(f"An error occurred: {e}")
+      return False
+
 class RespiceBOT(Bot):
-  """BOT que revierte desde ORES"""
 
-  def __init__(self, generator, site=None, **kwargs):
-    super(RespiceBOT, self).__init__(**kwargs)
-    self.available_options.update({'gf': 0.085, 'dm': 0.970, 'wiki': 'kowiki'})
+    """BOT que revierte desde ORES"""
 
-    self.generator = generator
-    self.site = site
-    if not self.site.logged_in():
-      self.site.login()
-    self.wiki = "{}{}".format(self.site.lang,
-                              str(self.site.family).replace('pedia', ''))
+    def __init__(self, generator, site=None, **kwargs):
+        super(RespiceBOT, self).__init__(**kwargs)
+        self.available_options.update({
+            'gf': 0.085,
+            'dm': 0.970,
+            'wiki': 'kowiki'
+        })
 
-  def run(self):
-    global point
-    print('run')
-    for page in filter(self.valid, self.generator):
-      try:
-        revision, buena_fe, danina, resultado, algorithm = self.check_risk(
-            page)
-      except Exception as exp:
-        print(exp)
-        continue
+        self.generator = generator
+        self.site = site
+        if not self.site.logged_in():
+            self.site.login()
+        self.wiki = "{}{}".format(self.site.lang, str(
+            self.site.family).replace('pedia', ''))
 
-      if revision is None:
-        continue
-      kst = timezone(timedelta(hours=9))
-      data = [
-          revision, buena_fe, danina, resultado,
-          page._rcinfo.get('user'),
-          page.title(),
-          datetime.now(kst).strftime('%Y%m%d%H%M%S'),
-          int(datetime.now(kst).timestamp()), algorithm
-      ]
-      i = i1
-      self.do_log(data)
-      if is_anonymous_user(self, page._rcinfo.get('user')):
-        i = 0.977
-      if point >= i:
-        self.do_reverse(page, page._rcinfo.get('user'))
-        if self.site.family.name == 'wikipedia' and self.site.lang == 'ko':
-          ##self.check_user(page._rcinfo.get('user'), page.title())
-          self.check_pagina(page.title())
+    def run(self):
+        global point
+        print('run')
+        for page in filter(self.valid, self.generator):
+            try:
+                revision, buena_fe, danina, resultado, algorithm = self.check_risk(
+                    page)
+            except Exception as exp:
+                print(exp)
+                continue
 
-  def valid(self, page):
-    print('valid')
-    """
+            if revision is None:
+                continue
+            kst = timezone(timedelta(hours=9))
+            data = [revision, buena_fe, danina, resultado, page._rcinfo.get('user'), page.title(),
+            datetime.now(kst).strftime('%Y%m%d%H%M%S'), int(datetime.now(kst).timestamp()), algorithm]
+            i=i1
+            if is_anonymous_user(self, page._rcinfo.get('user')):
+                  i = 0.977
+            if is_admin_user(page._rcinfo.get('user')) == False:
+                self.do_log(data)
+                if point >= i:
+                  self.do_reverse(page, page._rcinfo.get('user'))
+                  if self.site.family.name == 'wikipedia' and self.site.lang == 'ko':
+                        ##self.check_user(page._rcinfo.get('user'), page.title())
+                        self.check_pagina(page.title())
+
+    def valid(self, page):
+        print('valid')
+        """
         Check if we need to check the page from the LiveRCGenerator
 
         @param page: Page to check
         """
-    return (
-        # Solo lo que sea edicion
-        page._rcinfo.get('type') == 'edit' and
-        # que no sea bot
-        not page._rcinfo.get('bot') and
-        # que este en el espacio principal o anexo
-        page._rcinfo.get('namespace') in {0, 104} and
-        # que no sea yo mismo
-        page._rcinfo.get('user') != self.site.username() and
-        # que no sea una reversa (tag de reversa, los RV manual no los considera)
-        'mw-rollback' not in list(page.revisions(total=10))[0]['tags'])
+        return (
+            # Solo lo que sea edicion
+            page._rcinfo.get('type') == 'edit' and
+            # que no sea bot
+            not page._rcinfo.get('bot') and
+            # que este en el espacio principal o anexo
+            page._rcinfo.get('namespace') in {0, 104} and
+            # que no sea yo mismo
+            page._rcinfo.get('user') != self.site.username() and
+            # que no sea una reversa (tag de reversa, los RV manual no los considera)
+            'mw-rollback' not in list(page.revisions(total=10))[0]['tags']
+        )
 
-  def check_risk(self, page):
-    print('check_risk')
-    global point
-    i = i1
-    """Send a request to Wikimedia API to check the revert-risk of the page"""
-    headers = {
-        'User-Agent':
-        'RespiceBOT - an ORES/revertrisk-language-agnostic counter vandalism tool'
-    }
-    revision = page._rcinfo.get('revision')
-    revision_check = str(revision.get('new'))
-    url = 'https://api.wikimedia.org/service/lw/inference/v1/models/revertrisk-language-agnostic:predict'
+    def check_risk(self, page):
+        print('check_risk')
+        global point
+        i = i1
+        """Send a request to Wikimedia API to check the revert-risk of the page"""
+        headers = {
+            'User-Agent': 'RespiceBOT - an ORES/revertrisk-language-agnostic counter vandalism tool'}
+        revision = page._rcinfo.get('revision')
+        revision_check = str(revision.get('new'))
+        url = 'https://api.wikimedia.org/service/lw/inference/v1/models/revertrisk-language-agnostic:predict'
 
-    try:
-      data = requests.post(url=url,
-                           headers=headers,
-                           json={
-                               "rev_id": revision_check,
-                               "lang": self.site.lang
-                           }).json()
-    except requests.RequestException as e:
-      print(f"Error in API request: {e}")
-      # Handle the error or consider returning a default value
-      return None, None, None, None, None
+        try:
+            data = requests.post(url=url, headers=headers, json={
+                                 "rev_id": revision_check, "lang": self.site.lang}).json()
+        except requests.RequestException as e:
+            print(f"Error in API request: {e}")
+            # Handle the error or consider returning a default value
+            return None, None, None, None, None
 
-    if 'output' in data and 'probabilities' in data['output']:
-      point = data['output']['probabilities']['true']
-      return revision_check, data['output']['probabilities']['false'], data['output']['probabilities']['true'], \
-          data['output']['probabilities']['true'] > i, 'revertrisk-language-agnostic'
-    else:
-      print("Unexpected API response format")
-      # Handle the unexpected format or consider returning a default value
-      return None, None, None, None, None
+        if 'output' in data and 'probabilities' in data['output']:
+            point = data['output']['probabilities']['true']
+            return revision_check, data['output']['probabilities']['false'], data['output']['probabilities']['true'], \
+                data['output']['probabilities']['true'] > i, 'revertrisk-language-agnostic'
+        else:
+            print("Unexpected API response format")
+            # Handle the unexpected format or consider returning a default value
+            return None, None, None, None, None
 
-  def do_log(self, data):
-    wiki = self.wiki
-    general = os.path.join(os.path.dirname(os.path.realpath(__file__)), "log",
-                           f"{wiki}-general.log")
-    positivo = os.path.join(os.path.dirname(os.path.realpath(__file__)), "log",
-                            f"{wiki}-positivo.log")
-    print('loging')
-    with open(general, encoding="utf-8", mode="a+") as archivo:
-      archivo.write("\t".join(map(str, data)) + "\n")
+    def do_log(self, data):
+        wiki = self.wiki
+        general = os.path.join(os.path.dirname(os.path.realpath(
+            __file__)), "log", f"{wiki}-general.log")
+        positivo = os.path.join(os.path.dirname(os.path.realpath(
+            __file__)), "log", f"{wiki}-positivo.log")
+        print('loging')
+        with open(general, encoding="utf-8", mode="a+") as archivo:
+            archivo.write("\t".join(map(str, data)) + "\n")
 
-    if data[3]:
-      with open(positivo, encoding="utf-8", mode="a+") as archivo:
-        archivo.write("\t".join(map(str, data)) + "\n")
+        if data[3]:
+            with open(positivo, encoding="utf-8", mode="a+") as archivo:
+                archivo.write("\t".join(map(str, data)) + "\n")
 
-  """def check_user(self, user, page):
+    """def check_user(self, user, page):
         # Check for consecutive reversions by the same user
         wiki = self.wiki
         positive_log_path = os.path.join(os.path.dirname(
@@ -180,70 +192,71 @@ class RespiceBOT(Bot):
             except pywikibot.Error as e:
                 print(f"Error saving vandalism page: {e}")
         return """
-
-  #토론이 필요한 사항
-
-  def check_pagina(self, pagina):
-    y365, m365 = get_current_year_and_month()
-    wiki = self.wiki
-    positivo = "{0}/log/{1}-positivo.log".format(
-        os.path.dirname(os.path.realpath(__file__)), wiki)
-    df_reversas = pd.read_csv(positivo, header=None, delimiter='\t')
-    page = df_reversas[5] == pagina
-    past = (int(datetime.utcnow().timestamp()) - df_reversas[7]) < (
-        60 * 60 * 2)  # 4 horas
-    users = df_reversas[page & past][4].nunique()
-    rows = df_reversas[page & past]
-    if len(rows) < 6 or users < 2:
-      return
-
-    tabp = pywikibot.Page(self.site,
-                          title='문서 관리 요청/' + y365 + '년' + m365 + '월',
-                          ns=4)
-    if tabp.get().find('{{{{a|{0}}}}}'.format(pagina)) != -1:
-      return
-    tpl = "\n" + \
-        '{{{{풀기:사:RespicBOT/TABP|페이지={0}|서명=~~~~}}}}'.format(
-            pagina)
-    tabp.text += "\n" + tpl
-    try:
-      tabp.save(summary=u'[[{0}]] 문서를 보호 요청함'.format(pagina))
-    except:
-      pass
-    return
-
-  def do_reverse(self, page, user):
-    try:
-      print('reversa de ' + page.title())
-
-      self.site.rollbackpage(page, user=user)
-    except Exception as exp:
-      print(exp)
-      pass
+        #토론이 필요한 사항
 
 
-def main(*args):
-  print('main')
-  opts = {}
-  local_args = pywikibot.handle_args(args)
-  for arg in local_args:
-    if arg.startswith('-gf:'):
-      opts['gf'] = float(arg[4:])
-    elif arg.startswith('-dm:'):
-      opts['dm'] = float(arg[4:])
-    elif arg.startswith('-wiki:'):
-      opts['wiki'] = arg[6:]
+    def check_pagina(self, pagina):
+        y365, m365  = get_current_year_and_month()
+        wiki = self.wiki
+        positivo = "{0}/log/{1}-positivo.log".format(
+            os.path.dirname(os.path.realpath(__file__)), wiki)
+        df_reversas = pd.read_csv(positivo, header=None, delimiter='\t')
+        page = df_reversas[5] == pagina
+        past = (int(datetime.utcnow().timestamp()) -
+                df_reversas[7]) < (60 * 60 * 2)  # 4 horas
+        users = df_reversas[page & past][4].nunique()
+        rows = df_reversas[page & past]
+        if len(rows) < 6 or users < 2:
+            return
 
-  site = pywikibot.Site()
-  if 'wiki' in opts and opts['wiki'] != 'kowiki':
-    lang = opts['wiki'][0:2]
-    family = opts['wiki'][2:]
-    site = pywikibot.Site(lang, family)
+        tabp = pywikibot.Page(
+            self.site, title='문서 관리 요청/'+y365+'년'+m365+'월',
+            ns=4)
+        if tabp.get().find('{{{{a|{0}}}}}'.format(pagina)) != -1:
+            return
+        tpl = "\n" + \
+            '{{{{풀기:사:RespicBOT/TABP|페이지={0}|서명=~~~~}}}}'.format(
+                pagina)
+        tabp.text += "\n" + tpl
+        try:
+            tabp.save(
+                summary=u'[[{0}]] 문서를 보호 요청함'.format(pagina))
+        except:
+            pass
+        return
 
-  bot = RespiceBOT(pagegenerators.LiveRCPageGenerator(site), site=site, **opts)
-  bot.run()
+    def do_reverse(self, page, user):
+        try:
+            print('reversa de ' + page.title())
+
+            self.site.rollbackpage(page, user=user)
+        except Exception as exp:
+            print(exp)
+            pass
+
+
+def main(*args):  
+    print('main')
+    opts = {}
+    local_args = pywikibot.handle_args(args)
+    for arg in local_args:
+        if arg.startswith('-gf:'):
+            opts['gf'] = float(arg[4:])
+        elif arg.startswith('-dm:'):
+            opts['dm'] = float(arg[4:])
+        elif arg.startswith('-wiki:'):
+            opts['wiki'] = arg[6:]
+
+    site = pywikibot.Site()
+    if 'wiki' in opts and opts['wiki'] != 'kowiki':
+        lang = opts['wiki'][0:2]
+        family = opts['wiki'][2:]
+        site = pywikibot.Site(lang, family)
+
+    bot = RespiceBOT(pagegenerators.LiveRCPageGenerator(site), site=site, **opts)
+    bot.run()
 
 
 if __name__ == '__main__':
-  print('start')
-  main()
+    print('start')
+    main()
