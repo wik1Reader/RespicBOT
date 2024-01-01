@@ -31,7 +31,7 @@ def is_admin_user(username):
 
     groups = user.groups()
 
-    admin_groups = {'sysop', 'Bureaucrat', 'Oversighter', 'CheckUser', 'Autopatrolled', 'Imterface administrator'}
+    admin_groups = {'sysop', 'Bureaucrat', 'Oversighter', 'CheckUser', 'Autopatrolled', 'Imterface administrator', 'extendconfirm'}
     if any(group in admin_groups for group in groups):
         return True
     else:
