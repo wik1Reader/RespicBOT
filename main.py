@@ -6,7 +6,7 @@ import requests
 import pandas as pd
 import pywikibot
 from pywikibot import pagegenerators, Bot
-i1 = 0.964
+i1 = 0.965
 point = 0
 def get_current_year_and_month():
         now = datetime.now()
@@ -79,11 +79,13 @@ class RespiceBOT(Bot):
             data = [revision, buena_fe, danina, resultado, page._rcinfo.get('user'), page.title(),
             datetime.now(kst).strftime('%Y%m%d%H%M%S'), int(datetime.now(kst).timestamp()), algorithm]
             i=i1
+            print(point)
             if is_anonymous_user(self, page._rcinfo.get('user')):
                   i = 0.977
             if is_admin_user(page._rcinfo.get('user')) == False:
                 self.do_log(data)
                 if point >= i:
+                  print(point)
                   self.do_reverse(page, page._rcinfo.get('user'))
                   if self.site.family.name == 'wikipedia' and self.site.lang == 'ko':
                         ##self.check_user(page._rcinfo.get('user'), page.title())
@@ -138,6 +140,8 @@ class RespiceBOT(Bot):
             return None, None, None, None, None
 
     def do_log(self, data):
+        global point
+        i = 0.965
         wiki = self.wiki
         general = os.path.join(os.path.dirname(os.path.realpath(
             __file__)), "log", f"{wiki}-general.log")
@@ -146,8 +150,10 @@ class RespiceBOT(Bot):
         print('loging')
         with open(general, encoding="utf-8", mode="a+") as archivo:
             archivo.write("\t".join(map(str, data)) + "\n")
-
-        if data[3]:
+        if is_anonymous_user(self, data[4]) == False:
+            i = 0.977
+          
+        if point > i:
             with open(positivo, encoding="utf-8", mode="a+") as archivo:
                 archivo.write("\t".join(map(str, data)) + "\n")
 
