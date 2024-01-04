@@ -150,7 +150,7 @@ class RespiceBOT(Bot):
         print('loging')
         with open(general, encoding="utf-8", mode="a+") as archivo:
             archivo.write("\t".join(map(str, data)) + "\n")
-        if is_anonymous_user(self, data[4]) == False:
+        if is_anonymous_user(self, data[4]):
             i = 0.977
           
         if point > i:
