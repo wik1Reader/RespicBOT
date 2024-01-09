@@ -1,4 +1,4 @@
-# utf-8 인코딩 사용을 명시
+# -*- coding: utf-8 -*
 from __future__ import absolute_import, unicode_literals
 
 # 필요한 모듈들을 임포트
