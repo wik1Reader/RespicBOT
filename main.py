@@ -64,6 +64,7 @@ class RespiceBOT(Bot):
 
     def run(self):
         global point
+        global i1
         print('run')
         for page in filter(self.valid, self.generator):
             try:
@@ -114,6 +115,7 @@ class RespiceBOT(Bot):
     def check_risk(self, page):
         print('check_risk')
         global point
+        global i1
         i = i1
         """Send a request to Wikimedia API to check the revert-risk of the page"""
         headers = {
