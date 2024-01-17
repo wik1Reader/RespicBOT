@@ -104,7 +104,7 @@ class RespiceBOT(Bot):
         revision = page._rcinfo.get('revision')
         revision_check = str(revision.get('new'))
         url = 'https://api.wikimedia.org/service/lw/inference/v1/models/revertrisk-language-agnostic:predict'
-
+        
         # API 요청
         try:
             data = requests.post(url=url, headers=headers, json={"rev_id": revision_check, "lang": self.site.lang}).json()
@@ -113,8 +113,11 @@ class RespiceBOT(Bot):
             return None, None, None, None, None
 
         if 'output' in data and 'probabilities' in data['output']:
+            if is_anonymous_user(self, page._rcinfo.get('user')):
+              i = 0.977
             point = data['output']['probabilities']['true']
-            return revision_check, data['output']['probabilities']['false'], data['output']['probabilities']['true'], data['output']['probabilities']['true'] > i, 'revertrisk-language-agnostic'
+            return revision_check, data['output']['probabilities']['false'], data['output']['probabilities']['true'], \
+                data['output']['probabilities']['true'] > i, 'revertrisk-language-agnostic'
         else:
             print("Unexpected API response format")
             return None, None, None, None, None
