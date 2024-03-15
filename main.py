@@ -38,6 +38,18 @@ def is_admin_user(username):
     print(f"An error occurred: {e}")
     return False
 
+def how_user_edit(self, username):
+    user = pywikibot.User(self.site, username)
+    return user.editCount()
+
+def how_old_user(self, username):
+  user = pywikibot.User(self.site, username)
+  now = datetime.now()
+  first_edit = next(user.contributions(total=1, reverse=True))
+  first_time = first_edit[2]
+  timediff = now - first_time
+  return timediff.days
+
 # 소스의 메인 로봇 클래스 정의
 class RespiceBOT(Bot):
 
@@ -73,12 +85,17 @@ class RespiceBOT(Bot):
                 continue
             kst = timezone(timedelta(hours=9))
             data = [revision, buena_fe, danina, resultado, page._rcinfo.get('user'), page.title(), datetime.now(kst).strftime('%Y%m%d%H%M%S'), int(datetime.now(kst).timestamp()), algorithm]
-            # 익명사용자의 편집인 경우 임계값 조정
             if is_anonymous_user(self, page._rcinfo.get('user')):
-                  i = 0.977
+              i = 0.977
+              print(i)
+            if how_old_user(self, page._rcinfo.get('user'))>10:
+              i = 0.985
+              print(i)
             # 그룹 검사, 정해져 있는 그룹이 아니면 로깅 수행
+            if how_user_edit(self, page._rcinfo.get('user'))>100: 
+              i = 0.989
+              print(i)
             if not is_admin_user(page._rcinfo.get('user')):
-                # 포인트가 임계값 이상이면 되돌리기 수행
                 if point >= i:
                   print(point)
                   self.do_reverse(self, data) 
@@ -132,7 +149,7 @@ class RespiceBOT(Bot):
             print(exp)
             pass
 
-    
+
 def main(*args):
     print('main')
     opts = {}
