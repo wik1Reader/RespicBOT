@@ -86,14 +86,14 @@ class RespiceBOT(Bot):
             kst = timezone(timedelta(hours=9))
             data = [revision, buena_fe, danina, resultado, page._rcinfo.get('user'), page.title(), datetime.now(kst).strftime('%Y%m%d%H%M%S'), int(datetime.now(kst).timestamp()), algorithm]
             if is_anonymous_user(self, page._rcinfo.get('user')):
-              i = 0.977
+              i = 0.985
               print(i)
             if how_old_user(self, page._rcinfo.get('user'))>10:
-              i = 0.985
+              i = 0.988
               print(i)
             # 그룹 검사, 정해져 있는 그룹이 아니면 로깅 수행
             if how_user_edit(self, page._rcinfo.get('user'))>100: 
-              i = 0.989
+              i = 0.99
               print(i)
             if not is_admin_user(page._rcinfo.get('user')):
                 if point >= i:
