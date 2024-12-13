@@ -140,15 +140,51 @@ class RespiceBOT(Bot):
 
     def do_reverse(self, page, data):
         try:
-            print("log_2")
             page_1 = pywikibot.Page(self.site, title="user:RespiceBOT/true2_log", ns=3)
             page_1.text += "\t"+"[[특:차이/"+str(data[0])+"|"+str(data[0])+"]]"+"\t"+str(data[1])+"\t"+str(data[2])+"\t"+str(data[3])+"\t"+"[[특:기여/"+str(data[4])+"]]"+"\t"+"[["+str(data[5])+"]]"+"\t"+str(data[6])+"\t"+str(data[7])+"<br>"
             summary = "[[특:차이/"+str(data[0])+"|"+str(data[0])+"]]" + "[[특:기여/"+str(data[4])+"]]"+"[["+str(data[5])+"]]"
+            check_user(self, str(data[4]), page) 
             page_1.save(summary=summary)
         except Exception as exp:
             print(exp)
             pass
 
+def check_user(self, user, page):
+    wiki = self.wiki
+    log_page_title = f"User:RespiceBOT/true2_log"
+    log_page = pywikibot.Page(self.site, log_page_title)
+    try:
+        existing_log_content = log_page.text
+    except pywikibot.Error:
+        existing_log_content = ""
+    reversion_lines = existing_log_content.split('\n')
+    user_reversions = [line for line in reversion_lines if f"{user}\t{page}" in line]
+    
+    if len(user_reversions) >= 2:
+        if not pywikibot.User(self.site, user).isAnonymous():
+            notification_users = [
+                "User:Respice post te",
+            ]
+            for notify_user in notification_users:
+                try:
+                    talk_page = pywikibot.Page(self.site, 
+                                               title=notify_user, 
+                                               ns=3)
+                    talk_page.text += (
+                        f"\n== 알림 ==\n"
+                        f"* 알림 내용: 점검이 필요한 사용자 [[User:{user}]]를 감지함\n"
+                        f"* 문서 제목: [[{page}]]\n"
+                        f"* 리버전: {len(user_reversions)}\n"
+                        f"pywikibot으로 자동화됨. ~~~~"
+                    )
+                    summary = f"점검 필요 알림"
+                    talk_page.save(summary=summary)
+                except pywikibot.Error as e:
+                    print(f"Error saving talk page for {notify_user}: {e}")
+            new_log_entry = f"{datetime.now().isoformat()}\t{user}\t{page}\n"
+            log_page.text += new_log_entry
+            log_page.save(summary="Logging repeated reversions")
+            return
 
 def main(*args):
     print('main')
