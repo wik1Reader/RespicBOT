@@ -141,50 +141,88 @@ class RespiceBOT(Bot):
     def do_reverse(self, page, data):
         try:
             page_1 = pywikibot.Page(self.site, title="user:RespiceBOT/true2_log", ns=3)
-            page_1.text += "\t"+"[[특:차이/"+str(data[0])+"|"+str(data[0])+"]]"+"\t"+str(data[1])+"\t"+str(data[2])+"\t"+str(data[3])+"\t"+"[[특:기여/"+str(data[4])+"]]"+"\t"+"[["+str(data[5])+"]]"+"\t"+str(data[6])+"\t"+str(data[7])+"<br>"
+            page_1.text += "\t"+"[[특:차이/"+str(data[0])+"|"+str(data[0])+"]]"+"\t"+str(data[1])+"\t"+str(data[2])+"\t"+str(data[3])+"\t"+"[[특:기여/"+str(data[4])+"]]"+"\t"+"[["+str(data[5])+"]]"+"\t"+str(data[6])+"\t"+str(data[7])+"\n"
             summary = "[[특:차이/"+str(data[0])+"|"+str(data[0])+"]]" + "[[특:기여/"+str(data[4])+"]]"+"[["+str(data[5])+"]]"
-            check_user(self, str(data[4]), page) 
             page_1.save(summary=summary)
+            if str(data[4])!=user_again:
+                user_again=check_user(self, str(data[4]), page) 
         except Exception as exp:
             print(exp)
             pass
 
 def check_user(self, user, page):
+    import re
+    from datetime import datetime
     wiki = self.wiki
     log_page_title = f"User:RespiceBOT/true2_log"
     log_page = pywikibot.Page(self.site, log_page_title)
+    
     try:
         existing_log_content = log_page.text
     except pywikibot.Error:
         existing_log_content = ""
-    reversion_lines = existing_log_content.split('\n')
-    user_reversions = [line for line in reversion_lines if f"{user}\t{page}" in line]
     
-    if len(user_reversions) >= 2:
+    # 로그 파일의 각 줄에서 사용자 이름과 페이지를 추출
+    reversion_lines = existing_log_content.split('\n')
+    user_reversions = []
+    
+    for line in reversion_lines:
+        match = re.search(r"\[\[특:기여/([^\]]+)\]\]\s*", line)
+        if match:
+            log_user = match.group(1)  # 사용자 이름
+            log_page = match.group(2)  # 페이지 제목
+            if log_user == user and log_page == page:
+                user_reversions.append(line)
+    
+    # 리버전 횟수 확인
+    if len(user_reversions) >= 2:  # 되돌림 횟수가 2 이상일 경우
+        # 익명 사용자인지 확인
         if not pywikibot.User(self.site, user).isAnonymous():
-            notification_users = [
-                "User:Respice post te",
-            ]
+            # 'User:Respice post te/positive log' 페이지에서 사용자 목록 받아오기
+            log_page = pywikibot.Page(self.site, "User:Respice post te/positive log")
+            log_text = log_page.text
+            notification_users = []
+
+            # 문서에서 각 사용자 이름을 추출하여 알림 사용자 목록에 추가
+            for line in log_text.splitlines():
+                if line.strip() and line[0] != "#":  # 빈 줄이나 주석 제외
+                    notification_users.append(line.strip())  # 사용자 이름 추가
+
             for notify_user in notification_users:
                 try:
-                    talk_page = pywikibot.Page(self.site, 
-                                               title=notify_user, 
-                                               ns=3)
-                    talk_page.text += (
-                        f"\n== 알림 ==\n"
-                        f"* 알림 내용: 점검이 필요한 사용자 [[User:{user}]]를 감지함\n"
-                        f"* 문서 제목: [[{page}]]\n"
-                        f"* 리버전: {len(user_reversions)}\n"
-                        f"pywikibot으로 자동화됨. ~~~~"
-                    )
-                    summary = f"점검 필요 알림"
+                    # 알림을 보낼 사용자 토론 페이지 정의
+                    talk_page = pywikibot.Page(self.site, f"User talk:{notify_user}")
+                    if talk_page.exists():
+                        talk_page.text += (
+                            f"\n== 알림 ==\n"
+                            f"* \n알림 내용: 점검이 필요한 사용자 [[User:{user}]]를 감지함\n"
+                            f"* 문서 제목: [[{page}]]\n"
+                            f"* 리버전: {len(user_reversions)}\n"
+                            f"pywikibot으로 자동화됨. ~~~~"
+                        )
+                    else:
+                        talk_page.text = (
+                            f"== 알림 ==\n"
+                            f"* 알림 내용: 점검이 필요한 사용자 [[User:{user}]]를 감지함\n"
+                            f"* 문서 제목: [[{page}]]\n"
+                            f"* 리버전: {len(user_reversions)}\n"
+                            f"pywikibot으로 자동화됨. ~~~~"
+                        )
+                    # 요약과 함께 저장
+                    summary = f"점검 필요 알림:{user}"
                     talk_page.save(summary=summary)
                 except pywikibot.Error as e:
                     print(f"Error saving talk page for {notify_user}: {e}")
-            new_log_entry = f"{datetime.now().isoformat()}\t{user}\t{page}\n"
-            log_page.text += new_log_entry
-            log_page.save(summary="Logging repeated reversions")
-            return
+
+            # 로그 업데이트
+            try:
+                log_page.text += f"{datetime.now().isoformat()}\t{user}\t{page}\n"
+                log_page.save(summary="반복된 되돌림 로깅")
+            except pywikibot.Error as e:
+                print(f"Error updating log page: {e}")
+            
+            return user
+
 
 def main(*args):
     print('main')
