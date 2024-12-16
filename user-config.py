@@ -1,4 +1,4 @@
 usernames['wikipedia']['ko'] = 'RespiceBOT'
 family = 'wikipedia'
 mylang = 'ko'
-authenticate [ '*.wikipedia.org' ]  =  ( '<consumer_key>' , '<consumer_secret>' ,  '<access_key>' ,  '<access_secret>' )
+authenticate['ko.wikipedia.org'] = ('<consumer_key>', '<consumer_secret>', '<access_token>', '<access_secret>')
