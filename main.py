@@ -144,8 +144,7 @@ class RespiceBOT(Bot):
             page_1.text += "\t"+"[[특:차이/"+str(data[0])+"|"+str(data[0])+"]]"+"\t"+str(data[1])+"\t"+str(data[2])+"\t"+str(data[3])+"\t"+"[[특:기여/"+str(data[4])+"]]"+"\t"+"[["+str(data[5])+"]]"+"\t"+str(data[6])+"\t"+str(data[7])+"\n\n"
             summary = "[[특:차이/"+str(data[0])+"|"+str(data[0])+"]]" + "[[특:기여/"+str(data[4])+"]]"+"[["+str(data[5])+"]]"
             page_1.save(summary=summary)
-            if str(data[4])!=user_again:
-                user_again=check_user(self, str(data[4]), page) 
+            check_user(self, str(data[4]), page) 
         except Exception as exp:
             print(exp)
             pass
@@ -221,7 +220,7 @@ def check_user(self, user, page):
             except pywikibot.Error as e:
                 print(f"Error updating log page: {e}")
             
-            return user
+            return
 
 
 def main(*args):
