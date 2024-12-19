@@ -141,7 +141,7 @@ class RespiceBOT(Bot):
     def do_reverse(self, page, data):
         try:
             page_1 = pywikibot.Page(self.site, title="user:RespiceBOT/true2_log", ns=3)
-            page_1.text += "\t"+"[[특:차이/"+str(data[0])+"|"+str(data[0])+"]]"+"\t"+str(data[1])+"\t"+str(data[2])+"\t"+str(data[3])+"\t"+"[[특:기여/"+str(data[4])+"]]"+"\t"+"[["+str(data[5])+"]]"+"\t"+str(data[6])+"\t"+str(data[7])+"\n"
+            page_1.text += "\t"+"[[특:차이/"+str(data[0])+"|"+str(data[0])+"]]"+"\t"+str(data[1])+"\t"+str(data[2])+"\t"+str(data[3])+"\t"+"[[특:기여/"+str(data[4])+"]]"+"\t"+"[["+str(data[5])+"]]"+"\t"+str(data[6])+"\t"+str(data[7])+"<br>"
             summary = "[[특:차이/"+str(data[0])+"|"+str(data[0])+"]]" + "[[특:기여/"+str(data[4])+"]]"+"[["+str(data[5])+"]]"
             page_1.save(summary=summary)
             check_user(self, str(data[4]), page) 
@@ -162,11 +162,11 @@ def check_user(self, user, page):
         existing_log_content = ""
     
     # 로그 파일의 각 줄에서 사용자 이름과 페이지를 추출
-    reversion_lines = existing_log_content.split('\n')
+    reversion_lines = existing_log_content.split('<br>')
     user_reversions = []
     
     for line in reversion_lines:
-        match = re.search(r"\[\[특:기여/([^\]]+)\]\]\s*", line)
+        match = re.search(r"\[\[특:기여/([^\]]+)\]\]\s*\[\[([^\]]+)\]\]", line)
         if match:
             log_user = match.group(1)  # 사용자 이름
             log_page = match.group(2)  # 페이지 제목
@@ -179,16 +179,22 @@ def check_user(self, user, page):
         log_page = pywikibot.Page(self.site, "User:Respice post te/positive log")
         log_text = log_page.text
         notification_users = []
-
-         # 문서에서 각 사용자 이름을 추출하여 알림 사용자 목록에 추가
-        for line in log_text.splitlines():
-             if line.strip() and line[0] != "#":  # 빈 줄이나 주석 제외
-                notification_users.append(line.strip())  # 사용자 이름 추가
+        try:
+            log_text = log_page.text
+            print(log_text)
+        except pywikibot.Error:
+            log_text = ""
+        notification_users = []
+        for line in log_text.splitlines('\n'):
+            # # [[user:뒤의 문자열을 추출하는 정규 표현식
+            match = re.search(r"\[\[user:([^\]]+)\]\]", line)
+        if match:
+            notification_users.append(match.group(1)) 
 
         for notify_user in notification_users:
             try:
                 # 알림을 보낼 사용자 토론 페이지 정의
-                alk_page = pywikibot.Page(self.site, f"User talk:{notify_user}")
+                talk_page = pywikibot.Page(self.site, f"User talk:{notify_user}")
                 if talk_page.exists():
                     talk_page.text += (
                         f"\n== 알림 ==\n"
