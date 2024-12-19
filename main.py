@@ -219,7 +219,7 @@ def check_user(self, user, page):
 
             # 로그 업데이트
             try:
-                log_page.text += f"{datetime.now().isoformat()}\t{user}\t{page}\n"
+                log_page.text += f"{datetime.now().isoformat()}\t{user}\t{page}<br>"
                 log_page.save(summary="반복된 되돌림 로깅")
             except pywikibot.Error as e:
                 print(f"Error updating log page: {e}")
